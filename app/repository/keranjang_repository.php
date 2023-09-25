@@ -50,12 +50,24 @@ function selectAllMakananFromKeranjang($con, $id_keranjang) {
 function belanjaNow($con, $informasi_tambahan, $id_keranjang, $id_user) {
     // var_dump($informasi_tambahan, $id_keranjang, $id_user);
     // die;
-    if (mysqli_query($con, "SELECT * FROM `makanan_keranjang` WHERE id_keranjang = '$id_keranjang'")->num_rows > 0) {    
+    $makanan_keranjang = mysqli_query($con, "SELECT * FROM `makanan_keranjang` WHERE id_keranjang = '$id_keranjang'");
+    if ($makanan_keranjang->num_rows > 0) {    
         $tanggal_pesanan = date('Y-m-d H:i:s');
         $kode_pembayaran = strtoupper(base_convert(strtotime(date('Y-m-d H:i:s.u')),10,16));
         $query = "INSERT INTO `pesanan`(`id_pesanan`, `kode_pembayaran`, `is_lunas`, `informasi_tambahan`, `tanggal_pesanan`, `id_keranjang`, `id_user`) VALUES (NULL,'$kode_pembayaran',0,'$informasi_tambahan','$tanggal_pesanan','$id_keranjang','$id_user')";
         if (mysqli_query($con, $query)) {
             if (mysqli_query($con, "INSERT INTO `keranjang`(`id_keranjang`, `total_harga`, `id_user`) VALUES (NULL,'0','$id_user')")) {
+                try {
+                    // var_dump($makanan_keranjang);
+                    // die;
+                    foreach ($makanan_keranjang as $makanan) {
+                        $id_makanan = $makanan["id_makanan"];
+                        $jumlah = $makanan["jumlah"];
+                        mysqli_query($con, "UPDATE `makanan` SET `stok`=stok-$jumlah WHERE id_makanan=$id_makanan");
+                    }
+                } catch (\Throwable $th) {
+                    return 'Anda gagal memesan makanan';
+                }
                 return 'Anda berhasil memesan makanan';
             } else {
                 return 'Anda gagal memesan makanan' . mysqli_error($con);
